@@ -2,41 +2,76 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
     <style>
-        body { font-family: sans-serif; padding: 10px; background-color: var(--vscode-editor-background); color: var(--vscode-foreground); }
-        #chat-container { height: 300px; overflow-y: auto; border: 1px solid #444; padding: 10px; margin-bottom: 10px; }
-        .message { margin-bottom: 10px; padding: 5px; border-radius: 4px; }
-        .user { background: #333; }
-        .ai { background: #222; border-left: 3px solid #007acc; }
-        #input-area { display: flex; gap: 5px; }
-        input { flex: 1; padding: 5px; background: #1e1e1e; border: 1px solid #444; color: white; }
+        :root {
+            --input-bg: var(--vscode-input-background, #2c2c2c);
+            --border-color: var(--vscode-widget-border, #444);
+            --text-color: var(--vscode-foreground, #cccccc);
+        }
+        body { font-family: var(--vscode-font-family); background-color: var(--vscode-editor-background); color: var(--text-color); margin: 0; height: 100vh; display: flex; flex-direction: column; }
+        
+        #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+        .msg { padding: 8px 12px; border-radius: 6px; font-size: 13px; line-height: 1.6; }
+        .msg.user { align-self: flex-end; background: var(--vscode-button-background); color: white; }
+        .msg.ai { align-self: flex-start; background: var(--vscode-sideBar-background); border: 1px solid var(--border-color); width: 90%; }
+        
+        /* Styling untuk Markdown */
+        pre { background: #1e1e1e; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        code { font-family: 'Consolas', monospace; }
+
+        #composer { padding: 12px; border-top: 1px solid var(--border-color); background: var(--vscode-editor-background); }
+        textarea { width: 100%; min-height: 80px; padding: 10px; box-sizing: border-box; background: var(--input-bg); border: 1px solid var(--border-color); color: white; border-radius: 6px; resize: none; }
+        button { background: var(--vscode-button-background); color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; margin-top: 8px; }
     </style>
 </head>
 <body>
-    <div id="chat-container"></div>
-    <div id="input-area">
-        <input type="text" id="userInput" placeholder="Apa yang ingin dikerjakan Zecur?">
+
+    <div id="messages"></div>
+
+    <div id="composer">
+        <textarea id="userInput" placeholder="Tanyakan sesuatu pada Zecur..."></textarea>
         <button id="sendBtn">Kirim</button>
     </div>
 
     <script>
-        const vscode = acquireVsCodeApi(); // API khusus VS Code
-        const chat = document.getElementById('chat-container');
+        const vscode = acquireVsCodeApi();
+        const messages = document.getElementById('messages');
         const input = document.getElementById('userInput');
 
-        // Fungsi kirim ke extension.ts
+        // Fungsi render pesan
+        function appendMessage(text, isUser) {
+            const div = document.createElement('div');
+            div.className = `msg ${isUser ? 'user' : 'ai'}`;
+            
+            if (isUser) {
+                div.textContent = text;
+            } else {
+                // Konversi Markdown ke HTML
+                div.innerHTML = marked.parse(text);
+                // Highlight kode
+                div.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
         document.getElementById('sendBtn').onclick = () => {
-            const text = input.value;
+            const text = input.value.trim();
+            if (!text) return;
             vscode.postMessage({ command: 'runTask', text: text });
-            chat.innerHTML += `<div class="message user">Kamu: ${text}</div>`;
+            appendMessage(text, true);
             input.value = '';
         };
 
-        // Menerima pesan dari backend (agent)
         window.addEventListener('message', event => {
-            const message = event.data;
-            if (message.command === 'aiResponse') {
-                chat.innerHTML += `<div class="message ai">Zecur: ${message.text}</div>`;
+            if (event.data.command === 'aiResponse') {
+                appendMessage(event.data.text, false);
             }
         });
     </script>
