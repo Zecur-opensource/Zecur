@@ -1,15 +1,35 @@
 {
   "name": "zecur",
-  "displayName": "Zecur (Zero-Cursor)",
+  "displayName": "Zero-cursor",
+  "description": "Zecur AI Agent for VS Code",
   "version": "0.0.1",
-  "engines": { "vscode": "^1.80.0" },
-  "categories": ["AI"],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [{ "command": "zecur.startAgent", "title": "Zecur: Start Agent" }]
+    "commands": [
+      { "command": "zecur.startAgent", "title": "Zecur: Start Agent" },
+      { "command": "zecur.setApiKey", "title": "Zecur: Set API Key" },
+      { "command": "zecur.selectProvider", "title": "Zecur: Select Provider" }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
   },
   "devDependencies": {
-    "@types/vscode": "^1.80.0",
+    "@types/vscode": "^1.90.0",
+    "@types/node": "^20.0.0",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "openai": "^4.0.0",
+    "@google/generative-ai": "^0.1.0",
+    "marked": "^12.0.0",
+    "highlight.js": "^11.9.0"
   }
 }
