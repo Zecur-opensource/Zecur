@@ -1,72 +1,72 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { agentLoop } from './agent/loop';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log('Zecur is now active!');
 
-    // 1. Command: Membuka Zecur Panel
+    // --- LOGIKA PROVIDER (Dulu ada di provider.ts) ---
+    async function getAiResponse(task: string, provider: string, apiKey: string): Promise<string> {
+        if (provider === 'google') {
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+            const result = await model.generateContent(task);
+            return result.response.text();
+        } else {
+            const client = new OpenAI({ apiKey: apiKey, baseURL: 'https://openrouter.ai/api/v1' });
+            const completion = await client.chat.completions.create({
+                model: 'anthropic/claude-3.5-sonnet',
+                messages: [{ role: 'user', content: task }]
+            });
+            return completion.choices[0].message.content || "No response";
+        }
+    }
+
+    // --- LOGIKA AGENT LOOP (Dulu ada di loop.ts) ---
+    async function agentLoop(task: string, provider: string, apiKey: string): Promise<string> {
+        // Di sini kamu bisa tambahkan logika recursive jika ingin agent lebih pintar
+        // Untuk sekarang, kita panggil provider untuk menjawab
+        return await getAiResponse(task, provider, apiKey);
+    }
+
+    // --- KOMANDO: START AGENT ---
     let startDisposable = vscode.commands.registerCommand('zecur.startAgent', () => {
-        const panel = vscode.window.createWebviewPanel(
-            'zecur', 'Zecur Agent', vscode.ViewColumn.One,
-            { enableScripts: true, retainContextWhenHidden: true }
-        );
-
+        const panel = vscode.window.createWebviewPanel('zecur', 'Zecur Agent', vscode.ViewColumn.One, { enableScripts: true });
+        
         const htmlPath = path.join(context.extensionPath, 'src', 'webview', 'index.html');
         panel.webview.html = fs.readFileSync(htmlPath, 'utf8');
 
-        // Menangani pesan dari UI
         panel.webview.onDidReceiveMessage(async (message) => {
             if (message.command === 'runTask') {
-                try {
-                    // Cek kelengkapan konfigurasi
-                    const provider = context.globalState.get<string>('zecur_provider') || 'google';
-                    const apiKey = await context.secrets.get('zecur_api_key');
+                const provider = context.globalState.get<string>('zecur_provider') || 'google';
+                const apiKey = await context.secrets.get('zecur_api_key');
 
-                    if (!apiKey) {
-                        panel.webview.postMessage({ command: 'aiResponse', text: 'Error: API Key belum diatur. Jalankan "Zecur: Set API Key".' });
-                        return;
-                    }
-
-                    panel.webview.postMessage({ command: 'aiResponse', text: 'Zecur sedang berpikir...' });
-
-                    // Panggil Agent Loop (The Brain)
-                    const result = await agentLoop(message.text, provider, apiKey);
-                    panel.webview.postMessage({ command: 'aiResponse', text: result });
-
-                } catch (error: any) {
-                    panel.webview.postMessage({ command: 'aiResponse', text: `Error: ${error.message}` });
+                if (!apiKey) {
+                    panel.webview.postMessage({ command: 'aiResponse', text: 'Error: API Key belum diatur.' });
+                    return;
                 }
+
+                const result = await agentLoop(message.text, provider, apiKey);
+                panel.webview.postMessage({ command: 'aiResponse', text: result });
             }
         });
     });
 
-    // 2. Command: Mengatur API Key (BYOK)
-    let setKeyDisposable = vscode.commands.registerCommand('zecur.setApiKey', async () => {
-        const apiKey = await vscode.window.showInputBox({ 
-            prompt: 'Masukkan API Key Anda', 
-            password: true, 
-            ignoreFocusOut: true 
-        });
-        if (apiKey) {
-            await context.secrets.store('zecur_api_key', apiKey);
-            vscode.window.showInformationMessage('Zecur: API Key berhasil disimpan dengan aman.');
+    // --- KOMANDO: SET API KEY ---
+    let setKey = vscode.commands.registerCommand('zecur.setApiKey', async () => {
+        const key = await vscode.window.showInputBox({ prompt: 'Masukkan API Key', password: true });
+        if (key) {
+            await context.secrets.store('zecur_api_key', key);
+            vscode.window.showInformationMessage('Key tersimpan!');
         }
     });
 
-    // 3. Command: Memilih Provider
-    let selectProviderDisposable = vscode.commands.registerCommand('zecur.selectProvider', async () => {
-        const provider = await vscode.window.showQuickPick(['google', 'openrouter'], {
-            placeHolder: 'Pilih AI Provider'
-        });
-        if (provider) {
-            await context.globalState.update('zecur_provider', provider);
-            vscode.window.showInformationMessage(`Zecur: Provider diubah ke ${provider}`);
-        }
+    // --- KOMANDO: SELECT PROVIDER ---
+    let setProv = vscode.commands.registerCommand('zecur.selectProvider', async () => {
+        const p = await vscode.window.showQuickPick(['google', 'openrouter']);
+        if (p) await context.globalState.update('zecur_provider', p);
     });
 
-    context.subscriptions.push(startDisposable, setKeyDisposable, selectProviderDisposable);
+    context.subscriptions.push(startDisposable, setKey, setProv);
 }
-
-export function deactivate() {}
