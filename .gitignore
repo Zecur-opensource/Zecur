@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build artifacts (Hasil kompilasi TypeScript)
+out/
+*.js.map
+
+# Environment variables & Secrets (SANGAT PENTING!)
+.env
+
+# VS Code specific files
+.vscode/settings.json
+.vscode/tasks.json
+.history/
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
