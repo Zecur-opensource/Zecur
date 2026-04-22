@@ -1,7 +1,7 @@
 {
   "name": "zecur",
   "displayName": "Zero-cursor",
-  "publisher": "hastagaming"
+  "publisher": "hastagaming",
   "description": "Zecur AI Agent for VS Code",
   "version": "0.0.1",
   "engines": {
