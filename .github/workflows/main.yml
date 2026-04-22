@@ -1,9 +1,7 @@
-name: Zecur CI
+name: Zecur Build Application
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
     branches: [ main ]
 
 jobs:
@@ -21,5 +19,12 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Compile TypeScript
-        run: npm run compile
+      - name: Build VSIX Package
+        # Kita gunakan npx agar tidak perlu install global
+        run: npx vsce package --no-dependencies -y
+
+      - name: Upload VSIX Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zecur-Extension
+          path: "*.vsix"
