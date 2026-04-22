@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: sans-serif; padding: 10px; background-color: var(--vscode-editor-background); color: var(--vscode-foreground); }
+        #chat-container { height: 300px; overflow-y: auto; border: 1px solid #444; padding: 10px; margin-bottom: 10px; }
+        .message { margin-bottom: 10px; padding: 5px; border-radius: 4px; }
+        .user { background: #333; }
+        .ai { background: #222; border-left: 3px solid #007acc; }
+        #input-area { display: flex; gap: 5px; }
+        input { flex: 1; padding: 5px; background: #1e1e1e; border: 1px solid #444; color: white; }
+    </style>
+</head>
+<body>
+    <div id="chat-container"></div>
+    <div id="input-area">
+        <input type="text" id="userInput" placeholder="Apa yang ingin dikerjakan Zecur?">
+        <button id="sendBtn">Kirim</button>
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi(); // API khusus VS Code
+        const chat = document.getElementById('chat-container');
+        const input = document.getElementById('userInput');
+
+        // Fungsi kirim ke extension.ts
+        document.getElementById('sendBtn').onclick = () => {
+            const text = input.value;
+            vscode.postMessage({ command: 'runTask', text: text });
+            chat.innerHTML += `<div class="message user">Kamu: ${text}</div>`;
+            input.value = '';
+        };
+
+        // Menerima pesan dari backend (agent)
+        window.addEventListener('message', event => {
+            const message = event.data;
+            if (message.command === 'aiResponse') {
+                chat.innerHTML += `<div class="message ai">Zecur: ${message.text}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
