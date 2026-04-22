@@ -6,14 +6,25 @@
   "engines": {
     "vscode": "^1.90.0"
   },
-  "categories": ["Other"],
+  "categories": [
+    "Other"
+  ],
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
-      { "command": "zecur.startAgent", "title": "Zecur: Start Agent" },
-      { "command": "zecur.setApiKey", "title": "Zecur: Set API Key" },
-      { "command": "zecur.selectProvider", "title": "Zecur: Select Provider" }
+      {
+        "command": "zecur.startAgent",
+        "title": "Zecur: Start Agent"
+      },
+      {
+        "command": "zecur.setApiKey",
+        "title": "Zecur: Set API Key"
+      },
+      {
+        "command": "zecur.selectProvider",
+        "title": "Zecur: Select Provider"
+      }
     ]
   },
   "scripts": {
@@ -22,14 +33,14 @@
     "watch": "tsc -watch -p ./"
   },
   "devDependencies": {
-    "@types/vscode": "^1.90.0",
     "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "openai": "^4.0.0",
-    "@google/generative-ai": "^0.1.0",
-    "marked": "^12.0.0",
-    "highlight.js": "^11.9.0"
+    "@google/generative-ai": "^0.1.3",
+    "highlight.js": "^11.11.1",
+    "marked": "^12.0.2",
+    "openai": "^4.0.0"
   }
 }
