@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import type { OnMount } from '@monaco-editor/react';
+import type { type OnMount } from '@monaco-editor/react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { Vault } from './services/vault';
@@ -18,7 +18,11 @@ const App = () => {
   const xtermInstance = useRef<Terminal | null>(null);
 
   useEffect(() => {
-    const term = new Terminal({ theme: { background: '#1e1e1e' }, cursorBlink: true });
+    const term = new Terminal({ 
+      theme: { background: '#1e1e1e' }, 
+      cursorBlink: true,
+      convertEol: true // Memperbaiki baris baru di terminal
+    });
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
     
@@ -27,11 +31,11 @@ const App = () => {
       fitAddon.fit();
       term.writeln('\x1b[1;34m[ZECUR OS v0.1.0]\x1b[0m');
       term.writeln('Ketik "Zecur: add [KEY]" untuk memulai.');
-      term.write('\r\n\x1b[32m$ \x1b[0m');
+      term.write('\x1b[32m$ \x1b[0m');
     }
 
     let currentLine = '';
-    term.onData(async (data) => {
+    const disposable = term.onData(async (data) => {
       if (data === '\r') { // Tombol Enter
         term.write('\r\n');
         await handleCommand(currentLine, term);
@@ -49,39 +53,35 @@ const App = () => {
     });
 
     xtermInstance.current = term;
-    return () => term.dispose();
+    return () => {
+      disposable.dispose();
+      term.dispose();
+    };
   }, []);
 
   const handleCommand = async (command: string, term: Terminal) => {
     const cmd = command.trim();
 
-    // 1. Command: add API_KEY
     if (cmd.startsWith('Zecur: add ')) {
       const key = cmd.replace('Zecur: add ', '');
       Vault.saveKey(key);
       term.writeln('\x1b[32m[Vault]\x1b[0m API_KEY disimpan.');
     } 
-    
-    // 2. Command: check API_KEY
     else if (cmd === 'Zecur: check API_KEY') {
       term.writeln('Mengecek koneksi ke satelit AI...');
       try {
-        await askZecur("Halo Zecur, apakah kau aktif?", []);
+        await askZecur("ping", []);
         term.writeln('\x1b[32m[Online]\x1b[0m Zecur Brain terhubung!');
       } catch (e: any) {
         term.writeln(`\x1b[31m[Offline]\x1b[0m Error: ${e.message}`);
       }
     }
-
-    // 3. Command: choose Model_Ai
     else if (cmd === 'Zecur: choose Model_Ai') {
       term.writeln('\n\x1b[33mMODEL TERSEDIA:\x1b[0m');
       term.writeln('- gemini-1.5-pro');
       term.writeln('- gemini-1.5-flash');
       term.writeln('\nKetik: Zecur: set_model [nama_model]');
     }
-
-    // 4. Command: set_model
     else if (cmd.startsWith('Zecur: set_model ')) {
       const model = cmd.replace('Zecur: set_model ', '');
       Vault.saveModel(model);
@@ -110,12 +110,22 @@ const App = () => {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#1e1e1e' }}>
-      <div style={{ flex: 1, display: 'flex' }}>
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {/* Sidebar */}
         <div style={{ width: '200px', background: '#252526', color: '#ccc', padding: '10px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '10px' }}>ZECUR EXPLORER</div>
+          <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '10px', color: '#858585' }}>ZECUR EXPLORER</div>
           {files.map(f => (
-            <div key={f.name} onClick={() => setActiveFile(f)} style={{ cursor: 'pointer', padding: '5px', background: activeFile.name === f.name ? '#37373d' : '' }}>
+            <div 
+              key={f.name} 
+              onClick={() => setActiveFile(f)} 
+              style={{ 
+                cursor: 'pointer', 
+                padding: '6px 8px', 
+                fontSize: '13px',
+                background: activeFile.name === f.name ? '#37373d' : 'transparent',
+                borderRadius: '4px'
+              }}
+            >
               {f.name}
             </div>
           ))}
@@ -126,9 +136,11 @@ const App = () => {
             height="100%"
             theme="vs-dark"
             path={activeFile.name}
+            defaultLanguage="javascript"
             value={activeFile.content}
             onMount={handleEditorDidMount}
-            onChange={(v) => setFiles(prev => prev.map(f => f.name === activeFile.name ? {...f, content: v || ''} : f))}
+            onChange={(v: string | undefined) => setFiles(prev => prev.map(f => f.name === activeFile.name ? {...f, content: v || ''} : f))}
+            options={{ minimap: { enabled: false }, fontSize: 14 }}
           />
         </div>
       </div>
