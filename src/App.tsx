@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import Editor from '@monaco-editor/react';
 import type { type OnMount } from '@monaco-editor/react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
